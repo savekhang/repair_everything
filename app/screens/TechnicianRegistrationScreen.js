@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, Alert, StyleSheet, Picker } from 'react-native';
+import { View, Text, TextInput, Button, Alert, StyleSheet } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import axios from 'axios';
-import { API_URL } from '../../env'; // Nhập biến môi trường từ file env.js
+import { API_URL } from '../../env';
 
 const TechnicianRegistrationScreen = ({ navigation }) => {
   const [username, setUsername] = useState('');
@@ -11,11 +12,12 @@ const TechnicianRegistrationScreen = ({ navigation }) => {
   const [specialty, setSpecialty] = useState(null);
   const [categories, setCategories] = useState([]);
 
+  // Fetch categories from the API
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axios.get(`${API_URL}/technician-categories`);
-        setCategories(response.data);
+        const response = await axios.get(`${API_URL}/name_technician`);
+        setCategories(response.data); // Giả sử response.data là một mảng các loại thợ
       } catch (error) {
         Alert.alert('Lỗi', error.response?.data || error.message);
       }
@@ -30,21 +32,16 @@ const TechnicianRegistrationScreen = ({ navigation }) => {
     }
 
     try {
-      const response = await axios.post('http:// 192.168.110.133:3000/register', {
+      const response = await axios.post(`${API_URL}/technician_register`, {
         username,
         email,
         password,
         phone,
         account_type: 'technician',
+        technician_category_name: specialty, // Gửi tên chuyên ngành
       });
 
       if (response.status === 200) {
-        const userId = response.data.user_id;
-        await axios.post('http:// 192.168.110.133:3000/user-technician-categories', {
-          user_id: userId,
-          technician_category_id: specialty,
-        });
-
         Alert.alert('Đăng ký tài khoản thành công!', 'Bạn đã đăng ký tài khoản thợ.');
         navigation.navigate('Login');
       } else {
@@ -66,7 +63,7 @@ const TechnicianRegistrationScreen = ({ navigation }) => {
       <Picker selectedValue={specialty} onValueChange={(itemValue) => setSpecialty(itemValue)} style={styles.input}>
         <Picker.Item label="Chọn chuyên ngành" value={null} />
         {categories.map((category) => (
-          <Picker.Item key={category.id} label={category.name} value={category.id} />
+          <Picker.Item key={category.id} label={category.name} value={category.name} />
         ))}
       </Picker>
       <Button title="Đăng ký" onPress={handleTechnicianRegistration} />

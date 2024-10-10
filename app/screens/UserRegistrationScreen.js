@@ -16,7 +16,7 @@ const UserRegistrationScreen = ({ navigation }) => {
     }
 
     try {
-      const response = await axios.post(`${API_URL}/register`, {
+      const response = await axios.post(`${API_URL}/user_register`, {
         username,
         email,
         password,

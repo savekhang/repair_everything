@@ -23,13 +23,41 @@ const authenticateToken = (req, res, next) => {
 };
 
 // Đăng ký tài khoản
-app.post('/register', async (req, res) => {
+app.post('/user_register', async (req, res) => {
   const { username, email, password, phone, account_type } = req.body;
 
   const query = 'INSERT INTO Users (username, email, password, account_type, phone) VALUES (?, ?, ?, ?, ?)';
   db.query(query, [username, email, password, account_type, phone], (err, result) => {
     if (err) return res.status(500).send(err.message);
     res.send('Đăng ký thành công!');
+  });
+});
+
+// Đăng ký tài khoản thợ
+app.post('/technician_register', async (req, res) => {
+  const { username, email, password, phone, account_type, technician_category_name } = req.body;
+
+  if (account_type !== 'technician') {
+    return res.status(400).send('Account type must be "technician" for this registration.');
+  }
+
+  const query = 'INSERT INTO Users (username, email, password, account_type, phone, technician_category_name) VALUES (?, ?, ?, ?, ?, ?)';
+  
+  db.query(query, [username, email, password, account_type, phone, technician_category_name], (err, result) => {
+    if (err) return res.status(500).send(err.message);
+    res.send('Đăng ký thành công!');
+  });
+});
+
+// Lấy danh sách các loại thợ
+app.get('/name_technician', async (req, res) => {
+  const query = 'SELECT name FROM TechnicianCategories'; // Giả sử bạn có bảng TechnicianCategories trong cơ sở dữ liệu
+
+  db.query(query, (err, results) => {
+    if (err) {
+      return res.status(500).send(err.message); // Trả về lỗi 500 nếu có lỗi xảy ra
+    }
+    res.json(results); // Trả về kết quả dưới dạng JSON
   });
 });
 
@@ -51,6 +79,17 @@ app.post('/login', (req, res) => {
   });
 });
 
+// Get danh sách các bài viết
+app.get('/posts', (req, res) => {
+  const query = 'SELECT * FROM Posts';
+  db.query(query, (err, results) => {
+    if (err) {
+      return res.status(500).send(err.message); // Trả về lỗi nếu có vấn đề xảy ra
+    }
+    res.json(results); // Trả về danh sách bài viết dưới dạng JSON
+  });
+});
+
 // Đăng bài viết
 app.post('/posts', authenticateToken, (req, res) => {
   const { title, content } = req.body;
@@ -66,6 +105,36 @@ app.post('/posts', authenticateToken, (req, res) => {
     res.send('Đăng bài viết thành công!');
   });
 });
+
+// Chỉnh sửa bài viết
+app.put('/posts/:postId', authenticateToken, (req, res) => {
+  const postId = req.params.postId;
+  const { title, content } = req.body;
+  const userId = req.user.id; // Giả sử bạn có userId từ token sau khi giải mã
+
+  // Kiểm tra quyền sở hữu
+  const checkQuery = 'SELECT user_id FROM Posts WHERE id = ?';
+  db.query(checkQuery, [postId], (err, results) => {
+    if (err) return res.status(500).send(err.message);
+
+    if (results.length === 0) {
+      return res.status(404).send('Bài viết không tồn tại.');
+    }
+
+    if (results[0].user_id !== userId) {
+      return res.status(403).send('Bạn không có quyền chỉnh sửa bài viết này.');
+    }
+
+    // Cập nhật bài viết
+    const updateQuery = 'UPDATE Posts SET title = ?, content = ? WHERE id = ?';
+    db.query(updateQuery, [title, content, postId], (err, results) => {
+      if (err) return res.status(500).send(err.message);
+
+      res.send('Cập nhật bài viết thành công.');
+    });
+  });
+});
+
 
 // Bình luận và báo giá
 app.post('/posts/:postId/comments', authenticateToken, (req, res) => {

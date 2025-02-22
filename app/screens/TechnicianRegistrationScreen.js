@@ -38,7 +38,7 @@ const TechnicianRegistrationScreen = ({ navigation }) => {
         password,
         phone,
         account_type: 'technician',
-        technician_category_name: specialty, // Gửi tên chuyên ngành
+        technician_category_name: specialty, // Gửi tên nghiệp vụ
       });
 
       if (response.status === 200) {

@@ -10,6 +10,9 @@ import InterfaceScreen from './app/screens/InterfaceScreen';
 import ProfileScreen from './app/screens/ProfileScreen';
 import MessagesScreen from './app/screens/MessagesScreen';
 import DetailsScreen from './app/screens/DetailsScreen';
+import AdminScreen from './app/admin/AdminScreen';
+import ManagePost from './app/admin/ManagePost';
+import ManageAccount from './app/admin/ManageAccount';
 
 const Stack = createStackNavigator();
 
@@ -37,6 +40,9 @@ const App = () => {
         <Stack.Screen name="Profile" component={ProfileScreen} />
         <Stack.Screen name="Messages" component={MessagesScreen} />
         <Stack.Screen name="DetailsScreen" component={DetailsScreen} />
+        <Stack.Screen name="Admin" component={AdminScreen} />
+        <Stack.Screen name="ManagePost" component={ManagePost} />
+        <Stack.Screen name="ManageAccount" component={ManageAccount} />
       </Stack.Navigator>
     </NavigationContainer>
   );

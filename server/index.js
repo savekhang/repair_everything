@@ -449,6 +449,184 @@
       });
     });
 
+    //ADMIN
+    // dang nhap admin
+    app.post('/admin/login', (req, res) => {
+      const { username, password } = req.body;
+  
+      // Kiểm tra username và mật khẩu
+      if (!username || !password) {
+          return res.status(400).send('Vui lòng nhập tên đăng nhập và mật khẩu.');
+      }
+  
+      const query = 'SELECT * FROM Users WHERE username = ? AND account_type = "admin"';
+      db.query(query, [username], (err, results) => {
+          if (err) {
+              return res.status(500).send(err.message);
+          }
+          if (results.length === 0) {
+              return res.status(400).send('Tài khoản không tồn tại hoặc không phải admin.');
+          }
+  
+          const admin = results[0];
+  
+          // So sánh mật khẩu (chưa băm, nếu có bcrypt thì thay đổi)
+          if (admin.password !== password) {
+              return res.status(400).send('Mật khẩu không chính xác.');
+          }
+  
+          // Tạo JWT token
+          const token = jwt.sign({ id: admin.id, account_type: admin.account_type }, SECRET_KEY, {
+              expiresIn: '2h', // Admin có thể có thời gian token dài hơn
+          });
+  
+          // Trả về token và thông tin admin
+          res.json({
+              token,
+              admin: {
+                  id: admin.id,
+                  username: admin.username,
+                  email: admin.email,
+                  account_type: admin.account_type,
+                  phone: admin.phone,
+                  created_at: admin.created_at,
+              },
+          });
+      });
+  });
+
+  //editPost_admin
+  app.put('/admin/posts/:postId', authenticateToken, (req, res) => {
+    const postId = req.params.postId;
+    const { title, content } = req.body;
+  
+    // Kiểm tra xem ít nhất một trường có thông tin cần cập nhật
+    if (!title && !content) {
+      return res.status(400).send('Vui lòng cung cấp thông tin cần cập nhật.');
+    }
+  
+    // Cập nhật bài viết mà không cần kiểm tra quyền sở hữu
+    const updateQuery = 'UPDATE Posts SET title = ?, content = ? WHERE id = ?';
+    db.query(updateQuery, [title, content, postId], (err, results) => {
+      if (err) return res.status(500).send(err.message);
+  
+      if (results.affectedRows === 0) {
+        return res.status(404).send('Bài viết không tồn tại.');
+      }
+  
+      res.send('Cập nhật bài viết thành công.');
+    });
+  });
+
+  //Xóa bài viết_admin
+  app.delete('/admin/posts/:postId', authenticateToken, (req, res) => {
+    const postId = req.params.postId;
+  
+    // Xóa bài viết mà không cần kiểm tra quyền sở hữu
+    const deleteQuery = 'DELETE FROM Posts WHERE id = ?';
+    db.query(deleteQuery, [postId], (err, results) => {
+      if (err) return res.status(500).send(err.message);
+  
+      if (results.affectedRows === 0) {
+        return res.status(404).send('Bài viết không tồn tại.');
+      }
+  
+      res.send('Xóa bài viết thành công.');
+    });
+  });
+  
+  //Thêm tài khoản
+  app.post('/admin/users', authenticateToken, (req, res) => {
+    const { username, email, phone, password, account_type, technician_category_name } = req.body;
+  
+    // Kiểm tra các trường bắt buộc
+    if (!username || !email || !password || !account_type) {
+      return res.status(400).send('Vui lòng cung cấp đầy đủ thông tin người dùng.');
+    }
+  
+    // Kiểm tra loại tài khoản
+    if (account_type === 'technician' && !technician_category_name) {
+      return res.status(400).send('Vui lòng chọn loại thợ (technician_category_name) cho tài khoản thợ.');
+    }
+  
+    // Tạo câu lệnh SQL để thêm tài khoản
+    let query = 'INSERT INTO Users (username, email, phone, password, account_type';
+    let queryParams = [username, email, phone, password, account_type];
+  
+    // Nếu là tài khoản thợ, thêm trường technician_category_name
+    if (account_type === 'technician') {
+      query += ', technician_category_name) VALUES (?, ?, ?, ?, ?, ?)';
+      queryParams.push(technician_category_name);
+    } else {
+      query += ') VALUES (?, ?, ?, ?, ?)';
+    }
+  
+    db.query(query, queryParams, (err, results) => {
+      if (err) {
+        return res.status(500).send(err.message);
+      }
+  
+      res.send('Thêm tài khoản thành công.');
+    });
+});
+
+//Sua tai khoản
+app.put('/admin/users/:userId', authenticateToken, (req, res) => {
+  const userId = req.params.userId;
+  const { username, email, phone, password, account_type, technician_category_name } = req.body;
+
+  // Kiểm tra xem ít nhất một trường có thông tin cần cập nhật
+  if (!username && !email && !phone && !password && !account_type) {
+    return res.status(400).send('Vui lòng cung cấp thông tin cần cập nhật.');
+  }
+
+  // Kiểm tra loại tài khoản
+  if (account_type === 'technician' && !technician_category_name) {
+    return res.status(400).send('Vui lòng chọn loại thợ (technician_category_name) cho tài khoản thợ.');
+  }
+
+  // Tạo câu lệnh SQL để cập nhật thông tin người dùng
+  let query = 'UPDATE Users SET username = ?, email = ?, phone = ?, password = ?, account_type = ?';
+  let queryParams = [username || null, email || null, phone || null, password || null, account_type || null];
+
+  // Nếu là tài khoản thợ, thêm trường technician_category_name
+  if (account_type === 'technician') {
+    query += ', technician_category_name = ?';
+    queryParams.push(technician_category_name);
+  }
+
+  query += ' WHERE id = ?';
+  queryParams.push(userId);
+
+  db.query(query, queryParams, (err, result) => {
+    if (err) {
+      return res.status(500).send(err.message);
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).send('Người dùng không tồn tại.');
+    }
+
+    res.send('Cập nhật thông tin người dùng thành công.');
+  });
+});
+
+//Xoa tài khoản
+app.delete('/admin/users/:userId', authenticateToken, (req, res) => {
+  const userId = req.params.userId;
+
+  // Xóa tài khoản mà không cần kiểm tra quyền sở hữu
+  const deleteQuery = 'DELETE FROM Users WHERE id = ?';
+  db.query(deleteQuery, [userId], (err, results) => {
+    if (err) return res.status(500).send(err.message);
+
+    if (results.affectedRows === 0) {
+      return res.status(404).send('Người dùng không tồn tại.');
+    }
+
+    res.send('Xóa tài khoản thành công.');
+  });
+});
     // Khởi chạy server
     const PORT = 3000;
     app.listen(PORT, () => {

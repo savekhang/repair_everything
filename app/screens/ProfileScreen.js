@@ -6,7 +6,7 @@ import { API_URL } from '../../env';
 import * as Sharing from 'expo-sharing';
 import * as ImagePicker from 'expo-image-picker';
 
-const Profile = () => {
+const Profile = ({ navigation }) => {
     const [userInfo, setUserInfo] = useState(null);
     const [loading, setLoading] = useState(true);
     const [avatarUrl, setAvatarUrl] = useState(null);
@@ -225,6 +225,18 @@ const handleDeletePost = async () => {
   }
 };
 
+const handleLogout = async () => {
+  try {
+    await AsyncStorage.removeItem('token'); // Xóa token
+    Alert.alert('Thành công', 'Đăng xuất thành công.');
+    // Chuyển hướng về màn hình đăng nhập
+     navigation.navigate('Login');
+  } catch (error) {
+    console.error('Error logging out:', error);
+    Alert.alert('Lỗi', 'Có lỗi xảy ra khi đăng xuất.');
+  }
+};
+
   return (
     <KeyboardAvoidingView style={styles.container}>
       <View style={styles.profileHeader}>
@@ -245,6 +257,9 @@ const handleDeletePost = async () => {
         </TouchableOpacity>
           <TouchableOpacity style={styles.shareButton} onPress={shareProfile}>
             <Text style={styles.shareButtonText}>Chia sẻ hồ sơ</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.shareButton} onPress={handleLogout} >
+            <Text style={styles.shareButtonText}>Đăng xuất</Text>
           </TouchableOpacity>
         </View>
       <View style={styles.infoContainer}>
@@ -431,10 +446,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#808080',
     padding: 8,
     borderRadius: 16,
-    marginRight: 16, // Thêm khoảng cách giữa nút chỉnh sửa và chia sẻ
+    marginRight: 8, // Thêm khoảng cách giữa nút chỉnh sửa và chia sẻ
   },
   editButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#fff',
     fontWeight: 'bold',
   },
@@ -443,9 +458,10 @@ const styles = StyleSheet.create({
     padding: 8, // Giảm padding để thu ngắn nút chia sẻ
     borderRadius: 16,
     alignItems: 'centerri',
+    marginRight: 8,
   },
   shareButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#FFF',
     fontWeight: 'bold',
   },

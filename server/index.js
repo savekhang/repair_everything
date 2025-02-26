@@ -627,6 +627,35 @@ app.delete('/admin/users/:userId', authenticateToken, (req, res) => {
     res.send('Xóa tài khoản thành công.');
   });
 });
+
+// API lấy danh sách tài khoản
+app.get('/admin/users', (req, res) => {
+  // Câu lệnh SQL để lấy danh sách tài khoản
+  const query = `
+    SELECT 
+      id, 
+      username, 
+      email, 
+      phone, 
+      account_type, 
+      avatar, 
+      created_at, 
+      technician_category_name 
+    FROM Users
+  `;
+
+  // Thực thi câu lệnh SQL
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error('Lỗi khi lấy danh sách tài khoản:', err);
+      return res.status(500).send('Lỗi máy chủ nội bộ.');
+    }
+
+    // Trả về danh sách tài khoản
+    res.json(results);
+  });
+});
+
     // Khởi chạy server
     const PORT = 3000;
     app.listen(PORT, () => {

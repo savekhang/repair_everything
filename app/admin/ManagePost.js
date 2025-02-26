@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../../env';
 import { Ionicons } from '@expo/vector-icons';
 
-const ManagePostScreen = () => {
+const ManagePost = () => {
   const [posts, setPosts] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -15,6 +15,7 @@ const ManagePostScreen = () => {
     fetchPosts();
   }, []);
 
+  // Lấy danh sách bài viết
   const fetchPosts = async () => {
     const token = await AsyncStorage.getItem('token');
     if (!token) return;
@@ -26,6 +27,7 @@ const ManagePostScreen = () => {
     }
   };
 
+  // Xác nhận xóa bài viết hoặc bình luận
   const handleDelete = (id, type) => {
     Alert.alert('Xác nhận', `Bạn có chắc muốn xóa ${type === 'post' ? 'bài viết' : 'bình luận'} này?`, [
       { text: 'Hủy', style: 'cancel' },
@@ -33,30 +35,35 @@ const ManagePostScreen = () => {
     ]);
   };
 
+  // Xóa bài viết hoặc bình luận
   const deleteItem = async (id, type) => {
     const token = await AsyncStorage.getItem('token');
     try {
-      await axios.delete(`${API_URL}/${type === 'post' ? 'posts' : 'comments'}/${id}`, { headers: { Authorization: token } });
-      Alert.alert('Thành công', `${type === 'post' ? 'Bài viết' : 'Bình luận'} đã bị xóa.`);
-      fetchPosts();
+      // Sử dụng endpoint xóa bài viết của admin
+      await axios.delete(`${API_URL}/admin/posts/${id}`, { headers: { Authorization: token } });
+      Alert.alert('Thành công', 'Bài viết đã bị xóa.');
+      fetchPosts(); // Cập nhật lại danh sách bài viết
     } catch {
       Alert.alert('Lỗi', 'Không thể xóa.');
     }
   };
 
+  // Mở modal chỉnh sửa bài viết
   const handleEdit = (item, type) => {
     setSelectedItem({ ...item, type });
     setEditData({ title: item.title || '', content: item.content });
     setModalVisible(true);
   };
 
+  // Lưu thay đổi sau khi chỉnh sửa
   const saveChanges = async () => {
     const token = await AsyncStorage.getItem('token');
     if (!selectedItem) return;
     try {
-      await axios.put(`${API_URL}/${selectedItem.type === 'post' ? 'posts' : 'comments'}/${selectedItem.id}`, editData, { headers: { Authorization: token } });
+      // Sử dụng endpoint chỉnh sửa bài viết của admin
+      await axios.put(`${API_URL}/admin/posts/${selectedItem.id}`, editData, { headers: { Authorization: token } });
       Alert.alert('Thành công', 'Cập nhật thành công.');
-      fetchPosts();
+      fetchPosts(); // Cập nhật lại danh sách bài viết
     } catch {
       Alert.alert('Lỗi', 'Không thể cập nhật.');
     }
@@ -77,13 +84,16 @@ const ManagePostScreen = () => {
               <Text style={styles.dateText}>Ngày tạo: {new Date(item.created_at).toLocaleString()}</Text>
             </TouchableOpacity>
             <View style={styles.buttonRow}>
+              {/* Nút chỉnh sửa */}
               <TouchableOpacity onPress={() => handleEdit(item, 'post')}>
                 <Ionicons name="create-outline" size={24} color="blue" />
               </TouchableOpacity>
+              {/* Nút xóa */}
               <TouchableOpacity onPress={() => handleDelete(item.id, 'post')}>
                 <Ionicons name="trash-outline" size={24} color="red" />
               </TouchableOpacity>
             </View>
+            {/* Hiển thị bình luận nếu có */}
             {selectedItem?.id === item.id && (
               <FlatList
                 data={item.comments}
@@ -92,9 +102,11 @@ const ManagePostScreen = () => {
                   <View style={styles.commentContainer}>
                     <Text style={styles.commentText}>{comment.username}: {comment.content}</Text>
                     <View style={styles.buttonRow}>
+                      {/* Nút chỉnh sửa bình luận */}
                       <TouchableOpacity onPress={() => handleEdit(comment, 'comment')}>
                         <Ionicons name="create-outline" size={20} color="green" />
                       </TouchableOpacity>
+                      {/* Nút xóa bình luận */}
                       <TouchableOpacity onPress={() => handleDelete(comment.id, 'comment')}>
                         <Ionicons name="trash-outline" size={20} color="red" />
                       </TouchableOpacity>
@@ -106,13 +118,25 @@ const ManagePostScreen = () => {
           </View>
         )}
       />
+      {/* Modal chỉnh sửa */}
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             {selectedItem?.type === 'post' && (
-              <TextInput style={styles.input} placeholder="Tiêu đề" value={editData.title} onChangeText={(text) => setEditData({ ...editData, title: text })} />
+              <TextInput
+                style={styles.input}
+                placeholder="Tiêu đề"
+                value={editData.title}
+                onChangeText={(text) => setEditData({ ...editData, title: text })}
+              />
             )}
-            <TextInput style={styles.input} placeholder="Nội dung" value={editData.content} onChangeText={(text) => setEditData({ ...editData, content: text })} multiline />
+            <TextInput
+              style={styles.input}
+              placeholder="Nội dung"
+              value={editData.content}
+              onChangeText={(text) => setEditData({ ...editData, content: text })}
+              multiline
+            />
             <Button title="Lưu" onPress={saveChanges} />
             <Button title="Hủy" color="red" onPress={() => setModalVisible(false)} />
           </View>
@@ -122,6 +146,7 @@ const ManagePostScreen = () => {
   );
 };
 
+// Styles
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#fff' },
   title: { fontSize: 22, fontWeight: 'bold', marginBottom: 10 },
@@ -137,4 +162,4 @@ const styles = StyleSheet.create({
   input: { borderBottomWidth: 1, marginBottom: 10, padding: 5 },
 });
 
-export default ManagePostScreen;
+export default ManagePost;

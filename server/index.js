@@ -570,46 +570,69 @@
     });
 });
 
-//Sua tai khoản
 app.put('/admin/users/:userId', authenticateToken, (req, res) => {
   const userId = req.params.userId;
   const { username, email, phone, password, account_type, technician_category_name } = req.body;
 
-  // Kiểm tra xem ít nhất một trường có thông tin cần cập nhật
-  if (!username && !email && !phone && !password && !account_type) {
+  if (!username && !email && !phone && !account_type && password === undefined) {
     return res.status(400).send('Vui lòng cung cấp thông tin cần cập nhật.');
   }
 
-  // Kiểm tra loại tài khoản
   if (account_type === 'technician' && !technician_category_name) {
     return res.status(400).send('Vui lòng chọn loại thợ (technician_category_name) cho tài khoản thợ.');
   }
 
-  // Tạo câu lệnh SQL để cập nhật thông tin người dùng
-  let query = 'UPDATE Users SET username = ?, email = ?, phone = ?, password = ?, account_type = ?';
-  let queryParams = [username || null, email || null, phone || null, password || null, account_type || null];
+  // Lấy mật khẩu cũ nếu không có mật khẩu mới
+  const getUserQuery = 'SELECT password FROM Users WHERE id = ?';
+  db.query(getUserQuery, [userId], (err, results) => {
+    if (err) return res.status(500).send(err.message);
+    if (results.length === 0) return res.status(404).send('Người dùng không tồn tại.');
 
-  // Nếu là tài khoản thợ, thêm trường technician_category_name
-  if (account_type === 'technician') {
-    query += ', technician_category_name = ?';
-    queryParams.push(technician_category_name);
-  }
+    const currentPassword = results[0].password;
 
-  query += ' WHERE id = ?';
-  queryParams.push(userId);
+    let query = 'UPDATE Users SET';
+    let queryParams = [];
+    let updateFields = [];
 
-  db.query(query, queryParams, (err, result) => {
-    if (err) {
-      return res.status(500).send(err.message);
+    if (username) {
+      updateFields.push('username = ?');
+      queryParams.push(username);
+    }
+    if (email) {
+      updateFields.push('email = ?');
+      queryParams.push(email);
+    }
+    if (phone) {
+      updateFields.push('phone = ?');
+      queryParams.push(phone);
+    }
+    if (password !== undefined) {
+      updateFields.push('password = ?');
+      queryParams.push(password);
+    } else {
+      updateFields.push('password = ?'); // Giữ nguyên mật khẩu cũ
+      queryParams.push(currentPassword);
+    }
+    if (account_type) {
+      updateFields.push('account_type = ?');
+      queryParams.push(account_type);
+    }
+    if (account_type === 'technician' && technician_category_name) {
+      updateFields.push('technician_category_name = ?');
+      queryParams.push(technician_category_name);
     }
 
-    if (result.affectedRows === 0) {
-      return res.status(404).send('Người dùng không tồn tại.');
-    }
+    query += ' ' + updateFields.join(', ') + ' WHERE id = ?';
+    queryParams.push(userId);
 
-    res.send('Cập nhật thông tin người dùng thành công.');
+    db.query(query, queryParams, (err, result) => {
+      if (err) return res.status(500).send(err.message);
+      if (result.affectedRows === 0) return res.status(404).send('Người dùng không tồn tại.');
+      res.send('Cập nhật thông tin người dùng thành công.');
+    });
   });
 });
+
 
 //Xoa tài khoản
 app.delete('/admin/users/:userId', authenticateToken, (req, res) => {

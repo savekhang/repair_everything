@@ -25,9 +25,10 @@ const ManageAccount = () => {
   }, []);
 
   const fetchUsers = async () => {
-    const token = await AsyncStorage.getItem('token');
+    const token = await AsyncStorage.getItem('adminToken');
     if (!token) return;
     try {
+      console.log(token)
       const response = await axios.get(`${API_URL}/admin/users`, { headers: { Authorization: token } });
       setUsers(response.data);
     } catch (error) {
@@ -45,7 +46,7 @@ const ManageAccount = () => {
 
   // Xóa tài khoản
   const deleteUser = async (userId) => {
-    const token = await AsyncStorage.getItem('token');
+    const token = await AsyncStorage.getItem('adminToken');
     try {
       await axios.delete(`${API_URL}/admin/users/${userId}`, { headers: { Authorization: token } });
       Alert.alert('Thành công', 'Tài khoản đã bị xóa.');
@@ -63,7 +64,7 @@ const ManageAccount = () => {
         username: user.username,
         email: user.email,
         phone: user.phone,
-        password: '',
+        password: '***', // Hiển thị dấu *** thay vì giá trị thực
         account_type: user.account_type,
         technician_category_name: user.technician_category_name || '',
       });
@@ -84,28 +85,33 @@ const ManageAccount = () => {
 
   // Lưu thay đổi hoặc thêm mới
   const saveChanges = async () => {
-    const token = await AsyncStorage.getItem('token');
+    const token = await AsyncStorage.getItem('adminToken');
     if (!editData.username || !editData.email || !editData.account_type) {
       Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin.');
       return;
     }
-
+  
+    const dataToSend = { ...editData };
+    
+    // Nếu người dùng không thay đổi password, xóa nó khỏi dữ liệu gửi đi
+    if (editData.password === '***') {
+      delete dataToSend.password;
+    }
+  
     try {
       if (isAddMode) {
-        // Thêm tài khoản mới
-        await axios.post(`${API_URL}/admin/users`, editData, { headers: { Authorization: token } });
+        await axios.post(`${API_URL}/admin/users`, dataToSend, { headers: { Authorization: token } });
         Alert.alert('Thành công', 'Thêm tài khoản thành công.');
       } else {
-        // Cập nhật tài khoản
-        await axios.put(`${API_URL}/admin/users/${selectedUser.id}`, editData, { headers: { Authorization: token } });
+        await axios.put(`${API_URL}/admin/users/${selectedUser.id}`, dataToSend, { headers: { Authorization: token } });
         Alert.alert('Thành công', 'Cập nhật tài khoản thành công.');
       }
-      fetchUsers(); // Cập nhật lại danh sách
+      fetchUsers();
       setModalVisible(false);
     } catch (error) {
       Alert.alert('Lỗi', error.response?.data || 'Có lỗi xảy ra.');
     }
-  };
+  };  
 
   return (
     <View style={styles.container}>
@@ -161,9 +167,10 @@ const ManageAccount = () => {
               style={styles.input}
               placeholder="Mật khẩu"
               value={editData.password}
-              onChangeText={(text) => setEditData({ ...editData, password: text })}
+              onChangeText={(text) => setEditData({ ...editData, password: text || '***' })} // Giữ giá trị ***
               secureTextEntry
             />
+
             <TextInput
               style={styles.input}
               placeholder="Loại tài khoản (user/technician)"

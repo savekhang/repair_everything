@@ -132,7 +132,7 @@ const ManageAccount = () => {
             )}
             <View style={styles.buttonRow}>
               <TouchableOpacity onPress={() => handleEdit(item)}>
-                <Ionicons name="create-outline" size={24} color="blue" />
+                <Ionicons name="create-outline" size={24} color="#C0C0C0" />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => handleDelete(item.id)}>
                 <Ionicons name="trash-outline" size={24} color="red" />
@@ -148,24 +148,28 @@ const ManageAccount = () => {
             <TextInput
               style={styles.input}
               placeholder="Tên người dùng"
+              placeholderTextColor="black"
               value={editData.username}
               onChangeText={(text) => setEditData({ ...editData, username: text })}
             />
             <TextInput
               style={styles.input}
               placeholder="Email"
+              placeholderTextColor="black"
               value={editData.email}
               onChangeText={(text) => setEditData({ ...editData, email: text })}
             />
             <TextInput
               style={styles.input}
               placeholder="Số điện thoại"
+              placeholderTextColor="black"
               value={editData.phone}
               onChangeText={(text) => setEditData({ ...editData, phone: text })}
             />
             <TextInput
               style={styles.input}
               placeholder="Mật khẩu"
+              placeholderTextColor="black"
               value={editData.password}
               onChangeText={(text) => setEditData({ ...editData, password: text || '***' })} // Giữ giá trị ***
               secureTextEntry
@@ -174,6 +178,7 @@ const ManageAccount = () => {
             <TextInput
               style={styles.input}
               placeholder="Loại tài khoản (user/technician)"
+              placeholderTextColor="black"
               value={editData.account_type}
               onChangeText={(text) => setEditData({ ...editData, account_type: text })}
             />
@@ -196,19 +201,19 @@ const ManageAccount = () => {
 
 // Styles
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#fff' },
-  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 10 },
-  addButton: { backgroundColor: '#31A9D4', padding: 10, borderRadius: 5, marginBottom: 10 },
-  addButtonText: { color: '#fff', textAlign: 'center', fontWeight: 'bold' },
-  userContainer: { padding: 15, borderBottomWidth: 1, borderBottomColor: '#ccc' },
-  userName: { fontSize: 18, fontWeight: 'bold' },
-  userEmail: { fontSize: 16, color: '#666' },
-  userType: { fontSize: 14, color: '#333' },
-  userCategory: { fontSize: 14, color: '#333', fontStyle: 'italic' },
+  container: { flex: 1, padding: 20, backgroundColor: '#004581' },
+  title: { fontSize: 22, fontWeight: 'bold', color: '#8CC7DC', marginBottom: 10 },
+  addButton: { backgroundColor: '#004581', padding: 10, borderRadius: 5, marginBottom: 10 },
+  addButtonText: { color: '#C0C0C0', textAlign: 'center', fontWeight: 'bold', fontSize: 20 },
+  userContainer: { padding: 15, borderBottomWidth: 1, borderBottomColor: '#FFFFFF' },
+  userName: { fontSize: 18, color: '#8CC7DC', fontWeight: 'bold' },
+  userEmail: { fontSize: 16, color: '#FFFFFF' },
+  userType: { fontSize: 14, color: '#FFFFFF' },
+  userCategory: { fontSize: 14, color: '#FFFFFF', fontStyle: 'italic' },
   buttonRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 5 },
   modalContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalContent: { width: '80%', backgroundColor: 'white', padding: 20, borderRadius: 10 },
-  input: { borderBottomWidth: 1, marginBottom: 10, padding: 5 },
+  input: { borderBottomWidth: 1, color: '#000000', marginBottom: 10, padding: 5 },
 });
 
 export default ManageAccount;

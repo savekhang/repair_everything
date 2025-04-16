@@ -29,7 +29,7 @@ const TechnicianRegistrationScreen = ({ navigation }) => {
       Alert.alert('Vui lòng điền đầy đủ thông tin.');
       return;
     }
-
+  
     try {
       const response = await axios.post(`${API_URL}/technician_register`, {
         username,
@@ -39,14 +39,17 @@ const TechnicianRegistrationScreen = ({ navigation }) => {
         account_type: 'technician',
         technician_category_name: specialty,
       });
-
+  
+      console.log(response.status); // Kiểm tra phản hồi từ server
+  
       if (response.status === 200) {
         Alert.alert('Đăng ký thành công!', 'Bạn đã đăng ký tài khoản thợ.');
-        navigation.navigate('Login');
+        navigation.navigate('Capture'); // Điều hướng sau khi đăng ký thành công
       } else {
         Alert.alert('Đăng ký thất bại', response.data.message || 'Có lỗi xảy ra.');
       }
     } catch (error) {
+      console.error(error);
       Alert.alert('Đăng ký thất bại', error.response?.data || error.message);
     }
   };

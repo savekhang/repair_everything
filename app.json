@@ -1,5 +1,9 @@
 {
   "expo": {
+    "experiments": {
+      "bridgeless": false
+    },
+    
     "name": "repair_everything",
     "slug": "repair_everything",
     "version": "1.0.0",

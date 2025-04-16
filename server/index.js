@@ -449,6 +449,33 @@
       });
     });
 
+    app.get('/search', authenticateToken, async (req, res) => {
+      const { username } = req.query;
+  
+      if (!username) {
+          return res.status(400).json({ message: "Vui lòng nhập username" });
+      }
+  
+      try {
+          const [rows] = await db.promise().execute(
+              'SELECT id AS receiver_id, username FROM users WHERE username = ?', 
+              [username]
+          );
+  
+          console.log("🔍 Kết quả truy vấn:", rows);
+  
+          if (!rows.length) {
+              return res.status(404).json({ message: "Không tìm thấy người dùng" });
+          }
+  
+          res.json(rows[0]); 
+      } catch (error) {
+          console.error("❌ Lỗi truy vấn MySQL:", error);
+          res.status(500).json({ message: "Lỗi máy chủ", error: error.message });
+      }
+  });
+  
+
     //ADMIN
     // dang nhap admin
     app.post('/admin/login', (req, res) => {

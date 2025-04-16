@@ -13,6 +13,7 @@ import DetailsScreen from './app/screens/DetailsScreen';
 import AdminScreen from './app/admin/AdminScreen';
 import ManagePost from './app/admin/ManagePost';
 import ManageAccount from './app/admin/ManageAccount';
+import CaptureScreen from './app/screens/CaptureScreen';
 
 const Stack = createStackNavigator();
 
@@ -43,6 +44,7 @@ const App = () => {
         <Stack.Screen name="Admin" component={AdminScreen} />
         <Stack.Screen name="ManagePost" component={ManagePost} />
         <Stack.Screen name="ManageAccount" component={ManageAccount} />
+        <Stack.Screen name="Capture" component={CaptureScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

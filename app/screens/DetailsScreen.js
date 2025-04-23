@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,10 +9,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
-  Keyboard
+  Keyboard,
+  Alert,
+  Linking
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '../../env';
+import * as Location from 'expo-location';
+import { Ionicons } from '@expo/vector-icons';
 
 const DetailsScreen = ({ route }) => {
   const { receiverId, receiverUsername } = route.params;
@@ -20,12 +24,21 @@ const DetailsScreen = ({ route }) => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [accountType, setAccountType] = useState("");
+  const [accountType, setAccountType] = useState('');
+
+  const flatListRef = useRef();
 
   useEffect(() => {
     fetchMessages();
     fetchAccountType();
   }, []);
+
+  useEffect(() => {
+    // Scroll xuống cuối khi có tin nhắn mới
+    if (flatListRef.current) {
+      flatListRef.current.scrollToEnd({ animated: true });
+    }
+  }, [messages]);
 
   const fetchMessages = async () => {
     try {
@@ -45,7 +58,7 @@ const DetailsScreen = ({ route }) => {
 
   const fetchAccountType = async () => {
     const storedAccountType = await AsyncStorage.getItem('account_type');
-    setAccountType(storedAccountType?.trim() || "");
+    setAccountType(storedAccountType?.trim() || '');
   };
 
   const sendMessage = async () => {
@@ -63,11 +76,89 @@ const DetailsScreen = ({ route }) => {
         body: JSON.stringify({ receiver_id: receiverId, content: newMessage }),
       });
 
-      setMessages([...messages, { sender_id: 'Bạn', content: newMessage }]);
       setNewMessage('');
+      fetchMessages();
     } catch (error) {
       console.error('Lỗi gửi tin nhắn:', error.message);
     }
+  };
+
+  const handleSendLocation = () => {
+    Alert.alert(
+      'Gửi vị trí',
+      'Bạn có muốn gửi vị trí hiện tại của bạn?',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Xác nhận',
+          onPress: () => sendLocation(),
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const sendLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        alert('Bạn cần cho phép truy cập vị trí để sử dụng tính năng này!');
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+      const locationMessage = `Vị trí của tôi: https://www.google.com/maps?q=${latitude},${longitude}`;
+
+      const token = await AsyncStorage.getItem('token');
+      if (!token) throw new Error('Thiếu token!');
+
+      await fetch(`${API_URL}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: token,
+        },
+        body: JSON.stringify({ receiver_id: receiverId, content: locationMessage }),
+      });
+
+      fetchMessages();
+    } catch (error) {
+      console.error('Lỗi gửi định vị:', error.message);
+      alert('Không thể gửi vị trí.');
+    }
+  };
+
+  const renderItem = ({ item }) => {
+    const isReceiver = item.sender_id === receiverId;
+    const linkRegex = /(https?:\/\/[^\s]+)/g;
+
+    const formattedMessage = item.content.split(linkRegex).map((part, index) => {
+      if (linkRegex.test(part)) {
+        return (
+          <Text
+            key={index}
+            style={{ color: '#1e90ff', textDecorationLine: 'underline' }}
+            onPress={() => Linking.openURL(part)}
+          >
+            {part}
+          </Text>
+        );
+      }
+      return <Text key={index}>{part}</Text>;
+    });
+
+    return (
+      <View style={isReceiver ? styles.receiver : styles.sender}>
+        <Text style={isReceiver ? {} : { color: 'white' }}>{formattedMessage}</Text>
+        <Text style={[styles.time, isReceiver ? styles.timeReceiver : styles.timeSender]}>
+          {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </Text>
+        {!isReceiver && item.seen && (
+          <Text style={styles.seenText}>Đã xem</Text>
+        )}
+      </View>
+    );
   };
 
   return (
@@ -78,19 +169,24 @@ const DetailsScreen = ({ route }) => {
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.container}>
-          <Text style={styles.header}>Tin nhắn với {receiverUsername}</Text>
+          <Text style={styles.header}>{receiverUsername}</Text>
 
-          {loading ? <Text>Đang tải...</Text> : error ? <Text>{error}</Text> : (
+          {loading ? (
+            <Text>Đang tải...</Text>
+          ) : error ? (
+            <Text>{error}</Text>
+          ) : (
             <FlatList
+              ref={flatListRef}
               data={messages}
               keyExtractor={(item, index) => index.toString()}
-              renderItem={({ item }) => (
-                <View style={item.sender_id === receiverId ? styles.receiver : styles.sender}>
-                  <Text style={item.sender_id === receiverId ? {} : { color: 'white' }}>{item.content}</Text>
-                </View>
-              )}
-              contentContainerStyle={{ flexGrow: 1 }}
-              inverted
+              renderItem={renderItem}
+              contentContainerStyle={{ paddingBottom: 10 }}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              onContentSizeChange={() => {
+                flatListRef.current?.scrollToEnd({ animated: true });
+              }}
             />
           )}
 
@@ -102,13 +198,19 @@ const DetailsScreen = ({ route }) => {
               onChangeText={setNewMessage}
               multiline
             />
+            <TouchableOpacity onPress={handleSendLocation} style={styles.locationButton}>
+              <Ionicons name="location-outline" size={24} color="white" />
+            </TouchableOpacity>
             <TouchableOpacity onPress={sendMessage} style={styles.sendButton}>
               <Text style={{ color: 'white' }}>Gửi</Text>
             </TouchableOpacity>
           </View>
 
           {accountType === 'technician' && (
-            <TouchableOpacity style={styles.quoteButton} onPress={() => alert('Chức năng báo giá đang phát triển')}>
+            <TouchableOpacity
+              style={styles.quoteButton}
+              onPress={() => alert('Chức năng báo giá đang phát triển')}
+            >
               <Text style={styles.quoteButtonText}>Báo giá</Text>
             </TouchableOpacity>
           )}
@@ -119,21 +221,41 @@ const DetailsScreen = ({ route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  header: { fontSize: 22, fontWeight: 'bold', marginBottom: 10 },
+  container: { flex: 1, padding: 20, backgroundColor: '#004581' },
+  header: { fontSize: 22, fontWeight: 'bold', marginBottom: 10, color: '#BEDEDF' },
   receiver: {
     alignSelf: 'flex-start',
-    backgroundColor: '#ddd',
-    padding: 10,
-    marginVertical: 5,
-    borderRadius: 5
+    backgroundColor: '#BEDEDF',
+    padding: 12,
+    marginVertical: 4,
+    borderRadius: 20,
+    maxWidth: '80%',
   },
   sender: {
     alignSelf: 'flex-end',
-    backgroundColor: '#007bff',
-    padding: 10,
-    marginVertical: 5,
-    borderRadius: 5
+    backgroundColor: '#255EA8',
+    padding: 12,
+    marginVertical: 4,
+    borderRadius: 20,
+    maxWidth: '80%',
+  },
+  time: {
+    fontSize: 10,
+    marginTop: 4,
+  },
+  timeSender: {
+    color: '#e0e0e0',
+    textAlign: 'right',
+  },
+  timeReceiver: {
+    color: '#555',
+    textAlign: 'left',
+  },
+  seenText: {
+    fontSize: 10,
+    color: '#b0e0e6',
+    marginTop: 2,
+    textAlign: 'right',
   },
   inputContainer: {
     flexDirection: 'row',
@@ -141,7 +263,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#ccc',
-    paddingTop: 10
+    paddingTop: 10,
   },
   input: {
     flex: 1,
@@ -149,24 +271,32 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     padding: 10,
     marginRight: 10,
-    borderRadius: 5
+    borderRadius: 20,
+    backgroundColor: '#fff',
   },
   sendButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    backgroundColor: '#28a745',
-    borderRadius: 5
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    backgroundColor: '#1a73e8',
+    borderRadius: 20,
+    marginLeft: 8,
   },
   quoteButton: {
     marginTop: 10,
     padding: 10,
     backgroundColor: '#ff9800',
     alignItems: 'center',
-    borderRadius: 5
+    borderRadius: 20,
   },
   quoteButtonText: {
     color: 'white',
-    fontWeight: 'bold'
+    fontWeight: 'bold',
+  },
+  locationButton: {
+    padding: 12,
+    backgroundColor: '#1a73e8',
+    borderRadius: 20,
+    marginLeft: 0,
   },
 });
 

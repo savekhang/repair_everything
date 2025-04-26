@@ -14,6 +14,9 @@ import AdminScreen from './app/admin/AdminScreen';
 import ManagePost from './app/admin/ManagePost';
 import ManageAccount from './app/admin/ManageAccount';
 import CaptureScreen from './app/screens/CaptureScreen';
+import ServiceScreen from './app/screens/ServiceScreen';
+import ScheduleList from './app/screens/ScheduleList';
+import AddSchedule from './app/screens/AddSchedule';
 
 const Stack = createStackNavigator();
 
@@ -45,6 +48,9 @@ const App = () => {
         <Stack.Screen name="ManagePost" component={ManagePost} />
         <Stack.Screen name="ManageAccount" component={ManageAccount} />
         <Stack.Screen name="Capture" component={CaptureScreen} />
+        <Stack.Screen name="ServiceScreen" component={ServiceScreen} />
+        <Stack.Screen name="ScheduleList" component={ScheduleList} />
+        <Stack.Screen name="AddSchedule" component={AddSchedule} />
       </Stack.Navigator>
     </NavigationContainer>
   );

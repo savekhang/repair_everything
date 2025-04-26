@@ -54,7 +54,7 @@ const LoginScreen = ({ navigation }) => {
         }
 
         Alert.alert('Đăng nhập thành công!', 'Chào mừng bạn đến với ứng dụng!');
-        navigation.navigate('Interface');
+        navigation.navigate('ServiceScreen');
       } else {
         Alert.alert('Lỗi', 'Không thể nhận token từ máy chủ.');
       }

@@ -700,11 +700,96 @@ app.get('/admin/users', (req, res) => {
       console.error('Lỗi khi lấy danh sách tài khoản:', err);
       return res.status(500).send('Lỗi máy chủ nội bộ.');
     }
-
     // Trả về danh sách tài khoản
     res.json(results);
   });
 });
+
+// API tạo lịch mới cho user
+app.post('/create_schedule', async (req, res) => {
+  console.log('Dữ liệu nhận được:', req.body);
+  const { user_id, schedule_date, start_time, description } = req.body;
+
+  // Kiểm tra đầu vào
+  if (!user_id || !schedule_date || !start_time) {
+    return res.status(400).send('Vui lòng cung cấp user_id, schedule_date và start_time.');
+  }
+
+  const query = `
+    INSERT INTO schedules (user_id, schedule_date, start_time, description)
+    VALUES (?, ?, ?, ?)
+  `;
+
+  db.query(query, [user_id, schedule_date, start_time, description], (err, result) => {
+    if (err) {
+      console.error('Lỗi tạo lịch:', err);
+      return res.status(500).send('Lỗi server khi tạo lịch.');
+    }
+
+    res.json({
+      message: 'Tạo lịch thành công!',
+      scheduleId: result.insertId
+    });
+  });
+});
+
+
+// Xem tất cả lịch của user theo ID
+app.get('/user_schedules/:id', async (req, res) => {
+  const userId = req.params.id;
+
+  const query = `
+    SELECT id, schedule_date, start_time, description, created_at
+    FROM schedules
+    WHERE user_id = ?
+    ORDER BY schedule_date ASC, start_time ASC
+  `;
+
+  db.query(query, [userId], (err, results) => {
+    if (err) {
+      console.error('Lỗi lấy lịch:', err);
+      return res.status(500).send('Lỗi server khi lấy lịch.');
+    }
+
+    res.json({
+      userId: userId,
+      schedules: results
+    });
+  });
+});
+
+// Xem lịch của user theo khoảng thời gian
+app.get('/user_schedules/:id/filter', async (req, res) => {
+  const userId = req.params.id;
+  const { from, to } = req.query;
+
+  if (!from || !to) {
+    return res.status(400).send('Vui lòng cung cấp from và to dạng yyyy-mm-dd.');
+  }
+
+  const query = `
+    SELECT id, schedule_date, start_time, description, created_at
+    FROM schedules
+    WHERE user_id = ?
+      AND schedule_date BETWEEN ? AND ?
+    ORDER BY schedule_date ASC, start_time ASC
+  `;
+
+  db.query(query, [userId, from, to], (err, results) => {
+    if (err) {
+      console.error('Lỗi lọc lịch:', err);
+      return res.status(500).send('Lỗi server khi lọc lịch.');
+    }
+
+    res.json({
+      userId: userId,
+      from: from,
+      to: to,
+      schedules: results
+    });
+  });
+});
+
 
     // Khởi chạy server
     const PORT = 3000;
